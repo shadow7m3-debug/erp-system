@@ -1,0 +1,47 @@
+name: Build NutriERP APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install deps
+        run: npm install
+        working-directory: ./frontend
+
+      - name: Build web
+        run: npm run build
+        working-directory: ./frontend
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+        working-directory: ./frontend
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+        working-directory: ./frontend/android
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NutriERP-APK
+          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
